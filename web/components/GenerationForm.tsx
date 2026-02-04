@@ -96,10 +96,15 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
             })
 
             const data = await response.json()
+
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "Erro desconhecido na geração")
+            }
+
             onSuccess({ ...data, user_image: imageSource === "upload" ? formData.image_url : null })
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao gerar:", error)
-            alert("Erro ao conectar com o agente.")
+            alert(`Erro: ${error.message}`)
         } finally {
             setLoading(false)
         }
