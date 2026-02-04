@@ -1,0 +1,98 @@
+{
+    "name": "Agente Conteúdo -> WhatsApp (Z-API)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "agente-conteudo",
+                "options": {}
+            },
+            "name": "Webhook (Receive)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "agente-conteudo"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.z-api.io/instances/{{$node[\"Config Z-API\"].json[\"instance_id\"]}}/token/{{$node[\"Config Z-API\"].json[\"security_token\"]}}/send-text",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{$node[\"Config Z-API\"].json[\"target_phone\"]}}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{$json[\"full_text\"]}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Z-API Send Message",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "instance_id",
+                            "value": "SUA_INSTANCIA_AQUI"
+                        },
+                        {
+                            "name": "security_token",
+                            "value": "Ffb4d7c6ea8d947b78ccbca13b91a256cS"
+                        },
+                        {
+                            "name": "target_phone",
+                            "value": "SEU_GRUPO_OU_NUMERO_AQUI"
+                        }
+                    ]
+                }
+            },
+            "name": "Config Z-API",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                550,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook (Receive)": {
+            "main": [
+                [
+                    {
+                        "node": "Config Z-API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Config Z-API": {
+            "main": [
+                [
+                    {
+                        "node": "Z-API Send Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

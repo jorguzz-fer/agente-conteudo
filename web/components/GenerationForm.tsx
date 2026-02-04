@@ -21,8 +21,11 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
         tone: "profissional_direto",
         cta_text: "",
         cta_link: "",
+        cta_link: "",
         qt_titles: 3,
-        qt_images: 2
+        qt_images: 2,
+        target_phone: "", // New field for WhatsApp Group/Number
+        image_url: ""     // Placeholder for image
     })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -32,22 +35,22 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
 
     const handleLucky = () => {
         const themes = [
-            "A importância da IA na medicina veterinária",
-            "Como reduzir custos operacionais na clínica",
-            "Dicas para fidelizar clientes no petshop",
-            "Gestão financeira eficiente para veterinários",
-            "Por que investir em marketing digital para sua clínica?"
+            "Gestão Financeira para Pequenas Empresas",
+            "Liderança e Motivação de Equipes",
+            "Estratégias de Vendas para o Varejo",
+            "Como organizar o fluxo de caixa",
+            "Marketing Digital para Negócios Locais"
         ]
-        const audiences = ["Veterinários", "Gestores de Clínica", "Empresários Pet", "Estudantes"]
+        const audiences = ["Pequenos Empresários", "Gerentes de Loja", "Empreendedores", "Profissionais Liberais"]
         const contexts = [
-            "Focar em dados de mercado de 2024.",
-            "Citar a importância da humanização no atendimento.",
-            "Usar exemplos práticos do dia a dia.",
-            "Mencionar o crescimento do setor pet no Brasil."
+            "Focar em redução de custos sem perder qualidade.",
+            "Citar a importância de processos bem definidos.",
+            "Usar exemplos de empresas de sucesso.",
+            "Mencionar ferramentas de gestão gratuitas."
         ]
         const ctas = [
-            { text: "Agende uma consultoria", link: "https://minhaclinica.com.br/agenda" },
-            { text: "Baixe nosso e-book gratuito", link: "https://lp.conteudo.com/ebook" },
+            { text: "Agende uma consultoria", link: "https://minhaempresa.com.br/agenda" },
+            { text: "Baixe nossa planilha de gestão", link: "https://lp.conteudo.com/planilha" },
             { text: "Fale com um especialista", link: "https://wa.me/5511999999999" }
         ]
 
@@ -63,7 +66,9 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
             cta_text: chosenCta.text,
             cta_link: chosenCta.link,
             qt_titles: 3,
-            qt_images: 2
+            qt_images: 2,
+            target_phone: "120363403181922610-group", // Default to the known group for testing
+            image_url: ""
         })
     }
 
