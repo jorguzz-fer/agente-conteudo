@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Copy, Check, FileJson, FileText } from "lucide-react"
+import { Copy, Check, FileJson, FileText, Send, Loader2 } from "lucide-react"
 
 interface ResultViewProps {
     data: any
@@ -12,6 +12,30 @@ interface ResultViewProps {
 export function ResultView({ data }: ResultViewProps) {
     const [view, setView] = useState<"text" | "json">("text")
     const [copied, setCopied] = useState(false)
+    const [publishing, setPublishing] = useState(false)
+    const [published, setPublished] = useState(false)
+
+    const handlePublish = async () => {
+        setPublishing(true)
+        try {
+            const res = await fetch('/api/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            if (res.ok) {
+                setPublished(true)
+                // alert("Enviado para o grupo com sucesso!") 
+            } else {
+                alert("Erro ao enviar. Verifique o N8N_WEBHOOK_URL.")
+            }
+        } catch (error) {
+            console.error(error)
+            alert("Erro de conexão.")
+        } finally {
+            setPublishing(false)
+        }
+    }
 
     const handleCopy = () => {
         const content = view === "text" ? data.full_text : JSON.stringify(data, null, 2)
@@ -58,7 +82,7 @@ export function ResultView({ data }: ResultViewProps) {
                 </div>
             </CardHeader>
             <CardContent className="pt-6">
-                <div className="rounded-md border bg-muted p-4 overflow-auto max-h-[600px]">
+                <div className="rounded-md border bg-muted p-4 overflow-auto max-h-[600px] mb-4">
                     {view === "text" ? (
                         <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                             {data.full_text || "Erro: full_text não encontrado no retorno."}
@@ -68,6 +92,31 @@ export function ResultView({ data }: ResultViewProps) {
                             {JSON.stringify(data, null, 2)}
                         </pre>
                     )}
+                </div>
+
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handlePublish}
+                        disabled={publishing || published}
+                        className={published ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                        {publishing ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Enviando...
+                            </>
+                        ) : published ? (
+                            <>
+                                <Check className="mr-2 h-4 w-4" />
+                                Enviado!
+                            </>
+                        ) : (
+                            <>
+                                <Send className="mr-2 h-4 w-4" />
+                                Aprovar e Publicar
+                            </>
+                        )}
+                    </Button>
                 </div>
             </CardContent>
         </Card>

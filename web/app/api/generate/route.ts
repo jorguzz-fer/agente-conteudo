@@ -1,88 +1,89 @@
 import { NextResponse } from 'next/server'
+import OpenAI from 'openai'
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || "ski-proj-...", // Fallback useful only for local dev if env is missing, but best to rely on env
+})
+
+const SYSTEM_PROMPT = `
+# Agente de Criação de Conteúdo Base
+
+## 1️⃣ PAPEL DO AGENTE
+Você é um **Agente de Criação de Conteúdo Base**, responsável por gerar matérias estruturadas a partir de um tema fornecido por um mentor em uma interface web.
+Seu objetivo é:
+- Criar uma matéria base padronizada
+- Retornar o conteúdo em JSON estruturado
+
+## 3️⃣ ENTRADA (INPUT JSON)
+Você SEMPRE receberá um JSON com os campos abaixo:
+- theme (obrigatório)
+- context (opcional)
+- audience (opcional)
+- tone (opcional)
+- cta_text (opcional)
+- cta_link (opcional)
+
+## 4️⃣ REGRAS ABSOLUTAS (NÃO NEGOCIÁVEIS)
+1. **Nunca inventar dados específicos:** Datas, Valores, Locais -> Só use se vierem no context.
+2. **Nunca criar links falsos:** Se cta_link estiver vazio, o CTA não pode conter URL.
+3. **Emojis:** Máximo de 6. Permitido 🔸 no início de bullets.
+4. **Idioma:** Português do Brasil.
+5. **Formato:** APENAS JSON válido.
+
+## 6️⃣ SAÍDA (OUTPUT JSON OBRIGATÓRIO)
+Você deve retornar exatamente neste formato (nada mais):
+{
+  "theme": "",
+  "audience": "",
+  "tone": "",
+  "cta": { "text": "", "link": "" },
+  "titles": ["", "", ""],
+  "image_ideas": ["", ""],
+  "lede": "",
+  "bullets": ["", "", ""],
+  "highlights": ["", ""],
+  "full_text": "(Texto completo formatado com TEMA, TÍTULOS, IMAGEM/ARTE, LIDE, CORPO, CTA)",
+  "tags": ["", ""]
+}
+`
 
 export async function POST(request: Request) {
     try {
         const body = await request.json()
         const { theme, context, audience, tone, cta_text, cta_link } = body
 
-        // 1. If N8N_WEBHOOK_URL is defined, forward the request there
-        if (process.env.N8N_WEBHOOK_URL) {
-            try {
-                const response = await fetch(process.env.N8N_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                })
-
-                if (!response.ok) {
-                    throw new Error(`N8N responded with ${response.status}`)
-                }
-
-                const data = await response.json()
-                return NextResponse.json(data)
-            } catch (error) {
-                console.error("Error calling N8N:", error)
-                return NextResponse.json({ error: "Falha na comunicação com o agente." }, { status: 502 })
-            }
+        if (!process.env.OPENAI_API_KEY) {
+            // Fallback to Mock if no Key is present (useful for debugging/demo without cost)
+            console.warn("OPENAI_API_KEY not found. Using Mock response.")
+            await new Promise(resolve => setTimeout(resolve, 1500))
+            return NextResponse.json({
+                theme,
+                full_text: `[MODO MOCK - SEM CHAVE OPENAI]\n\nTEMA: ${theme}\n\nPara gerar conteúdo real, configure a variável OPENAI_API_KEY no Coolify.\n\nEste é um exemplo de visualização.`,
+                titles: ["Título Mock 1", "Título Mock 2", "Título Mock 3"],
+                image_ideas: ["Imagem Mock"],
+                lede: "Lide mockado para teste de interface.",
+                bullets: ["Bullet 1", "Bullet 2"],
+                highlights: ["Destaque Mock"],
+                tags: ["mock", "teste"],
+                cta: { text: cta_text || "Saiba mais", link: cta_link }
+            })
         }
 
-        // 2. MOCK MODE (If no N8N URL)
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Fake delay
-
-        const mockResponse = {
-            theme: theme,
-            audience: audience || "Geral",
-            tone: tone || "profissional_direto",
-            cta: {
-                text: cta_text || "Saiba mais",
-                link: cta_link || ""
-            },
-            titles: [
-                `Tudo sobre ${theme}`,
-                `3 Dicas essenciais sobre ${theme}`,
-                `O que você precisa saber sobre ${theme}`
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini", // Cost-effective and fast model
+            messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: JSON.stringify(body) }
             ],
-            image_ideas: [
-                `Foto profissional mostrando ${theme} em contexto prático`,
-                `Infográfico resumindo os benefícios de ${theme}`
-            ],
-            lede: `Descubra como ${theme} pode transformar seus resultados. Uma análise direta e essencial para quem busca eficiência.`,
-            bullets: [
-                `🔸 Ponto principal sobre ${theme} que todos devem saber.`,
-                `🔸 Benefício direto da aplicação correta de ${theme}.`,
-                `🔸 Erro comum que deve ser evitado ao lidar com ${theme}.`,
-                `🔸 Dica de ouro para maximizar resultados.`
-            ],
-            highlights: [
-                `*Importante*: ${theme} é a tendência do momento.`,
-                `*Dica*: Comece hoje mesmo.`
-            ],
-            tags: ["inovação", "eficiência", "gestão"],
-            full_text: `TEMA: ${theme}
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+        })
 
-TÍTULOS:
-1) Tudo sobre ${theme}
-2) 3 Dicas essenciais sobre ${theme}
-3) O que você precisa saber sobre ${theme}
+        const content = completion.choices[0].message.content
+        if (!content) throw new Error("No content returned from OpenAI")
 
-IMAGEM/ARTE:
-A) Foto profissional mostrando ${theme} em contexto prático
-B) Infográfico resumindo os benefícios de ${theme}
-
-LIDE:
-Descubra como ${theme} pode transformar seus resultados. Uma análise direta e essencial para quem busca eficiência.
-
-CORPO:
-🔸 Ponto principal sobre ${theme} que todos devem saber.
-🔸 Benefício direto da aplicação correta de ${theme}.
-🔸 Erro comum que deve ser evitado ao lidar com ${theme}.
-🔸 Dica de ouro para maximizar resultados.
-
-CTA:
-${cta_text || "Saiba mais"}`
-        }
-
-        return NextResponse.json(mockResponse)
+        const parsedContent = JSON.parse(content)
+        return NextResponse.json(parsedContent)
 
     } catch (error) {
         console.error("API Error:", error)
