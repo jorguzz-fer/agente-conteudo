@@ -7,13 +7,26 @@ import { Copy, Check, FileJson, FileText, Send, Loader2 } from "lucide-react"
 
 interface ResultViewProps {
     data: any
+    onReset?: () => void
 }
 
-export function ResultView({ data }: ResultViewProps) {
+export function ResultView({ data, onReset }: ResultViewProps) {
     const [view, setView] = useState<"text" | "json">("text")
     const [copied, setCopied] = useState(false)
     const [publishing, setPublishing] = useState(false)
     const [published, setPublished] = useState(false)
+    const [selectedImage, setSelectedImage] = useState<string | null>(data.user_image || null)
+
+    const isAiImageMode = !data.user_image && !selectedImage
+
+    // Suggest 3 mock images if AI mode was chosen and no image selected yet
+    const mockAiImages = [
+        "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=400&q=80",
+        "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=400&q=80",
+        "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80"
+    ]
+
+    const finalData = { ...data, image_url: selectedImage }
 
     const handlePublish = async () => {
         setPublishing(true)
@@ -21,11 +34,14 @@ export function ResultView({ data }: ResultViewProps) {
             const res = await fetch('/api/publish', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(finalData)
             })
             if (res.ok) {
                 setPublished(true)
-                // alert("Enviado para o grupo com sucesso!") 
+                // Wait 2s and Reset
+                setTimeout(() => {
+                    if (onReset) onReset()
+                }, 2000)
             } else {
                 alert("Erro ao enviar. Verifique o N8N_WEBHOOK_URL.")
             }
@@ -82,6 +98,34 @@ export function ResultView({ data }: ResultViewProps) {
                 </div>
             </CardHeader>
             <CardContent className="pt-6">
+
+                {/* Image Selection Area */}
+                {isAiImageMode && (
+                    <div className="mb-6 space-y-3">
+                        <h3 className="font-semibold text-sm text-foreground/80 flex items-center gap-2">
+                            ✨ Sugestões Nano Banana (Mock) - Escolha uma:
+                        </h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            {mockAiImages.map((img, i) => (
+                                <div
+                                    key={i}
+                                    className={`relative aspect-[9/16] rounded-md overflow-hidden cursor-pointer border-2 ${selectedImage === img ? "border-primary" : "border-transparent"}`}
+                                    onClick={() => setSelectedImage(img)}
+                                >
+                                    <img src={img} className="object-cover w-full h-full hover:scale-105 transition-transform" alt={`Sugestão ${i}`} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {selectedImage && !isAiImageMode && (
+                    <div className="mb-6 p-2 border rounded-md bg-muted/20">
+                        <p className="text-xs text-muted-foreground mb-2">Imagem Selecionada:</p>
+                        <img src={selectedImage} alt="Selected" className="h-40 w-auto rounded-md object-cover" />
+                    </div>
+                )}
+
                 <div className="rounded-md border bg-muted p-4 overflow-auto max-h-[600px] mb-4">
                     {view === "text" ? (
                         <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">

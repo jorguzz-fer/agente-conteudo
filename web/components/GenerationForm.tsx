@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Sparkles, Loader2, Dices } from "lucide-react"
+import { Sparkles, Loader2, Dices, Upload, Image as ImageIcon } from "lucide-react"
 
 interface GenerationFormProps {
     onSuccess: (data: any) => void
@@ -14,6 +14,7 @@ interface GenerationFormProps {
 
 export function GenerationForm({ onSuccess }: GenerationFormProps) {
     const [loading, setLoading] = useState(false)
+    const [imageSource, setImageSource] = useState<"upload" | "ai">("ai")
     const [formData, setFormData] = useState({
         theme: "",
         context: "",
@@ -21,16 +22,26 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
         tone: "profissional_direto",
         cta_text: "",
         cta_link: "",
-        cta_link: "",
         qt_titles: 3,
         qt_images: 2,
-        target_phone: "", // New field for WhatsApp Group/Number
-        image_url: ""     // Placeholder for image
+        target_phone: "",
+        image_url: ""
     })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, image_url: reader.result as string }))
+            }
+            reader.readAsDataURL(file)
+        }
     }
 
     const handleLucky = () => {
@@ -67,9 +78,10 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
             cta_link: chosenCta.link,
             qt_titles: 3,
             qt_images: 2,
-            target_phone: "120363403181922610-group", // Default to the known group for testing
+            target_phone: "120363403181922610-group",
             image_url: ""
         })
+        setImageSource("ai")
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -77,15 +89,14 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
         setLoading(true)
 
         try {
-            // In a real scenario, this connects to the backend API which calls n8n
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ ...formData, image_source: imageSource })
             })
 
             const data = await response.json()
-            onSuccess(data)
+            onSuccess({ ...data, user_image: imageSource === "upload" ? formData.image_url : null })
         } catch (error) {
             console.error("Erro ao gerar:", error)
             alert("Erro ao conectar com o agente.")
@@ -102,12 +113,12 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                     Gerador de Matérias
                 </CardTitle>
                 <CardDescription>
-                    Preencha os dados abaixo para acionar o Agente de Conteúdo Base.
+                    Preencha os dados abaixo para acionar o Agente de Conteúdo.
                 </CardDescription>
                 <div className="pt-2">
                     <Button variant="outline" size="sm" onClick={handleLucky} title="Preencher aleatoriamente">
                         <Dices className="w-4 h-4 mr-2" />
-                        Estou com Sorte
+                        Estou com Sorte (Gestão)
                     </Button>
                 </div>
             </CardHeader>
@@ -118,7 +129,7 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                         <Input
                             id="theme"
                             name="theme"
-                            placeholder="Ex: Benefícios da automação em clínicas..."
+                            placeholder="Ex: Como reduzir custos na empresa..."
                             required
                             value={formData.theme}
                             onChange={handleChange}
@@ -132,59 +143,111 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                             <Input
                                 id="audience"
                                 name="audience"
-                                placeholder="Ex: Veterinários, Gestores..."
+                                placeholder="Ex: Empresários, Lojistas..."
                                 value={formData.audience}
                                 onChange={handleChange}
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="tone">Tom de Voz</Label>
-                            <div className="relative">
-                                <select
-                                    id="tone"
-                                    name="tone"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
-                                    value={formData.tone}
-                                    onChange={handleChange}
-                                >
-                                    <option value="profissional_direto">Profissional Direto (Padrão)</option>
-                                    <option value="didatico">Didático</option>
-                                    <option value="premium">Premium</option>
-                                    <option value="leve">Leve</option>
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
-                                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"><path d="M4.93179 5.43179C4.75605 5.60753 4.75605 5.89245 4.93179 6.06819C5.10753 6.24392 5.39245 6.24392 5.56819 6.06819L7.49999 4.13638L9.43179 6.06819C9.60753 6.24392 9.89245 6.24392 10.0682 6.06819C10.2439 5.89245 10.2439 5.60753 10.0682 5.43179L7.81819 3.18179C7.73379 3.0974 7.61933 3.04999 7.49999 3.04999C7.38064 3.04999 7.26618 3.0974 7.18179 3.18179L4.93179 5.43179ZM10.0682 9.56819C10.2439 9.39245 10.2439 9.10753 10.0682 8.93179C9.89245 8.75606 9.60753 8.75606 9.43179 8.93179L7.49999 10.8636L5.56819 8.93179C5.39245 8.75606 5.10753 8.75606 4.93179 8.93179C4.75605 9.10753 4.75605 9.39245 4.93179 9.56819L7.18179 11.8182C7.26618 11.9026 7.38064 11.95 7.49999 11.95C7.61933 11.95 7.73379 11.9026 7.81819 11.8182L10.0682 9.56819Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
-                                </div>
-                            </div>
+                            <Label htmlFor="target_phone">Enviar para (ID Grupo/Número) <span className="text-destructive">*</span></Label>
+                            <Input
+                                id="target_phone"
+                                name="target_phone"
+                                placeholder="12036...-group"
+                                required
+                                value={formData.target_phone}
+                                onChange={handleChange}
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="context">Contexto Adicional (Dados, datas, valores...)</Label>
+                        <Label>Imagem do Post</Label>
+                        <div className="flex gap-4 mb-2">
+                            <Button
+                                type="button"
+                                variant={imageSource === "ai" ? "default" : "outline"}
+                                onClick={() => setImageSource("ai")}
+                                className="flex-1"
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Sugerir com Nano Banana (AI)
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={imageSource === "upload" ? "default" : "outline"}
+                                onClick={() => setImageSource("upload")}
+                                className="flex-1"
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Próprio (1080x1920)
+                            </Button>
+                        </div>
+
+                        {imageSource === "upload" && (
+                            <div className="flex items-center gap-2 border rounded-md p-2 bg-muted/20">
+                                <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="cursor-pointer"
+                                />
+                                {formData.image_url && (
+                                    <div className="w-10 h-10 rounded overflow-hidden border">
+                                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {imageSource === "ai" && (
+                            <p className="text-xs text-muted-foreground">
+                                O agente irá sugerir 3 opções de imagens baseadas no tema.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="context">Contexto Adicional</Label>
                         <Textarea
                             id="context"
                             name="context"
-                            placeholder="Cole aqui informações cruciais que NÃO podem ser inventadas."
-                            className="h-24 resize-none"
+                            placeholder="Informações extras, dados, datas..."
+                            className="h-20 resize-none"
                             value={formData.context}
                             onChange={handleChange}
                         />
                     </div>
 
+                    <div className="space-y-2">
+                        <Label htmlFor="tone">Tom de Voz</Label>
+                        <select
+                            id="tone"
+                            name="tone"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={formData.tone}
+                            onChange={handleChange}
+                        >
+                            <option value="profissional_direto">Profissional Direto</option>
+                            <option value="didatico">Didático</option>
+                            <option value="premium">Premium</option>
+                            <option value="leve">Leve</option>
+                        </select>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="cta_text">Texto do CTA (Opcional)</Label>
+                            <Label htmlFor="cta_text">Texto do CTA</Label>
                             <Input
                                 id="cta_text"
                                 name="cta_text"
-                                placeholder="Ex: Agende uma demonstração"
+                                placeholder="Ex: Agende agora"
                                 value={formData.cta_text}
                                 onChange={handleChange}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="cta_link">Link do CTA (Opcional)</Label>
+                            <Label htmlFor="cta_link">Link do CTA</Label>
                             <Input
                                 id="cta_link"
                                 name="cta_link"
@@ -201,12 +264,12 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                         {loading ? (
                             <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Gerando Matéria...
+                                Gerando {imageSource === "ai" ? "+ Imagens" : ""}...
                             </>
                         ) : (
                             <>
                                 <Sparkles className="mr-2 h-5 w-5" />
-                                Gerar Matéria Base
+                                Gerar Matéria
                             </>
                         )}
                     </Button>
