@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Sparkles, Loader2 } from "lucide-react"
+import { Sparkles, Loader2, Dices } from "lucide-react"
 
 interface GenerationFormProps {
     onSuccess: (data: any) => void
@@ -28,6 +28,43 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
+    }
+
+    const handleLucky = () => {
+        const themes = [
+            "A importância da IA na medicina veterinária",
+            "Como reduzir custos operacionais na clínica",
+            "Dicas para fidelizar clientes no petshop",
+            "Gestão financeira eficiente para veterinários",
+            "Por que investir em marketing digital para sua clínica?"
+        ]
+        const audiences = ["Veterinários", "Gestores de Clínica", "Empresários Pet", "Estudantes"]
+        const contexts = [
+            "Focar em dados de mercado de 2024.",
+            "Citar a importância da humanização no atendimento.",
+            "Usar exemplos práticos do dia a dia.",
+            "Mencionar o crescimento do setor pet no Brasil."
+        ]
+        const ctas = [
+            { text: "Agende uma consultoria", link: "https://minhaclinica.com.br/agenda" },
+            { text: "Baixe nosso e-book gratuito", link: "https://lp.conteudo.com/ebook" },
+            { text: "Fale com um especialista", link: "https://wa.me/5511999999999" }
+        ]
+
+        const randomRec = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
+
+        const chosenCta = randomRec(ctas)
+
+        setFormData({
+            theme: randomRec(themes),
+            audience: randomRec(audiences),
+            context: randomRec(contexts),
+            tone: "profissional_direto",
+            cta_text: chosenCta.text,
+            cta_link: chosenCta.link,
+            qt_titles: 3,
+            qt_images: 2
+        })
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +99,12 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                 <CardDescription>
                     Preencha os dados abaixo para acionar o Agente de Conteúdo Base.
                 </CardDescription>
+                <div className="pt-2">
+                    <Button variant="outline" size="sm" onClick={handleLucky} title="Preencher aleatoriamente">
+                        <Dices className="w-4 h-4 mr-2" />
+                        Estou com Sorte
+                    </Button>
+                </div>
             </CardHeader>
             <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-6">
