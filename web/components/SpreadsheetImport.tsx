@@ -1,18 +1,27 @@
 'use client'
 
-import { useState } from 'react'
-import { Upload, FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Upload, FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { parseCSV, parseExcel, validateSpreadsheetData, type ContentRow } from '@/lib/spreadsheet'
 
 export default function SpreadsheetImport() {
     const [file, setFile] = useState<File | null>(null)
+    const [googleSheetsUrl, setGoogleSheetsUrl] = useState('')
     const [data, setData] = useState<ContentRow[]>([])
     const [errors, setErrors] = useState<string[]>([])
     const [loading, setLoading] = useState(false)
     const [sending, setSending] = useState(false)
     const [results, setResults] = useState<any>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleFileClick = () => {
+        fileInputRef.current?.click()
+    }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
@@ -35,6 +44,53 @@ export default function SpreadsheetImport() {
                 throw new Error('Formato não suportado. Use CSV ou Excel (.xlsx)')
             }
 
+            const validation = validateSpreadsheetData(parsedData)
+
+            if (!validation.valid) {
+                setErrors(validation.errors)
+            } else {
+                setData(validation.data)
+            }
+
+        } catch (error: any) {
+            setErrors([error.message])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleGoogleSheetsImport = async () => {
+        if (!googleSheetsUrl.trim()) {
+            setErrors(['Por favor, cole o link do Google Sheets'])
+            return
+        }
+
+        setErrors([])
+        setData([])
+        setResults(null)
+        setLoading(true)
+
+        try {
+            // Extract spreadsheet ID from URL
+            const match = googleSheetsUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)
+            if (!match) {
+                throw new Error('URL inválida do Google Sheets')
+            }
+
+            const spreadsheetId = match[1]
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`
+
+            // Fetch CSV data
+            const response = await fetch(csvUrl)
+            if (!response.ok) {
+                throw new Error('Erro ao acessar a planilha. Verifique se ela está pública.')
+            }
+
+            const csvText = await response.text()
+            const blob = new Blob([csvText], { type: 'text/csv' })
+            const file = new File([blob], 'google-sheets.csv', { type: 'text/csv' })
+
+            const parsedData = await parseCSV(file)
             const validation = validateSpreadsheetData(parsedData)
 
             if (!validation.valid) {
@@ -82,28 +138,70 @@ export default function SpreadsheetImport() {
                         Importar Planilha
                     </CardTitle>
                     <CardDescription>
-                        Faça upload de um arquivo CSV ou Excel com as colunas: titulo, subtitulo, texto, image_url (opcional), target_phone
+                        Importe dados de um arquivo local ou de uma planilha do Google Sheets
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <input
-                            type="file"
-                            accept=".csv,.xlsx,.xls"
-                            onChange={handleFileChange}
-                            className="hidden"
-                            id="spreadsheet-upload"
-                        />
-                        <label htmlFor="spreadsheet-upload">
-                            <Button asChild variant="outline">
-                                <span className="cursor-pointer">
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    Escolher Arquivo
-                                </span>
-                            </Button>
-                        </label>
-                        {file && <span className="text-sm text-muted-foreground">{file.name}</span>}
-                    </div>
+                    <Tabs defaultValue="file" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="file">
+                                <Upload className="h-4 w-4 mr-2" />
+                                Arquivo Local
+                            </TabsTrigger>
+                            <TabsTrigger value="google">
+                                <Link2 className="h-4 w-4 mr-2" />
+                                Google Sheets
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="file" className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Arquivo CSV ou Excel</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Colunas: titulo, subtitulo, texto, image_url (opcional), target_phone
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".csv,.xlsx,.xls"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                    />
+                                    <Button onClick={handleFileClick} variant="outline">
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        Escolher Arquivo
+                                    </Button>
+                                    {file && <span className="text-sm text-muted-foreground">{file.name}</span>}
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="google" className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="google-sheets-url">Link do Google Sheets</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Cole o link da planilha (deve estar pública para leitura)
+                                </p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="google-sheets-url"
+                                        type="url"
+                                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                                        value={googleSheetsUrl}
+                                        onChange={(e) => setGoogleSheetsUrl(e.target.value)}
+                                    />
+                                    <Button onClick={handleGoogleSheetsImport} disabled={loading}>
+                                        {loading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <>Importar</>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
 
                     {loading && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
