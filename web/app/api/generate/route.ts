@@ -83,6 +83,13 @@ export async function POST(request: Request) {
         if (!content) throw new Error("No content returned from OpenAI")
 
         const parsedContent = JSON.parse(content)
+
+        // Validation: Ensure mandatory fields exist
+        if (!parsedContent.full_text) {
+            console.error("OpenAI Missing Fields:", parsedContent)
+            throw new Error("A IA retornou um formato incompleto (faltou full_text). Tente novamente.")
+        }
+
         return NextResponse.json(parsedContent)
 
     } catch (error: any) {
