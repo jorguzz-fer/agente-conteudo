@@ -50,7 +50,17 @@ Você deve retornar exatamente neste formato (nada mais):
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { theme, context, audience, tone, cta_text, cta_link } = body
+        const { theme, context, audience, tone, cta_text, cta_link, image_url, image_source, target_phone } = body
+
+        // Prepare payload for OpenAI (exclude image_url to prevent context overflow)
+        const aiPayload = {
+            theme,
+            context,
+            audience,
+            tone,
+            cta_text,
+            cta_link
+        }
 
         if (!process.env.OPENAI_API_KEY) {
             // Fallback to Mock if no Key is present (useful for debugging/demo without cost)
@@ -73,7 +83,7 @@ export async function POST(request: Request) {
             model: "gpt-4o-mini", // Cost-effective and fast model
             messages: [
                 { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: JSON.stringify(body) }
+                { role: "user", content: JSON.stringify(aiPayload) } // Use aiPayload without image
             ],
             response_format: { type: "json_object" },
             temperature: 0.7,
