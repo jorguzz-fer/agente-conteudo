@@ -33,14 +33,39 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
         setFormData(prev => ({ ...prev, [name]: value }))
     }
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
-            const reader = new FileReader()
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, image_url: reader.result as string }))
+            setLoading(true)
+            try {
+                // Convert to base64 first
+                const reader = new FileReader()
+                reader.onloadend = async () => {
+                    try {
+                        // Upload to Cloudinary
+                        const response = await fetch('/api/upload-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image: reader.result })
+                        })
+
+                        if (!response.ok) throw new Error('Upload failed')
+
+                        const data = await response.json()
+                        setFormData(prev => ({ ...prev, image_url: data.url }))
+                    } catch (error) {
+                        console.error('Upload error:', error)
+                        alert('Erro ao fazer upload da imagem. Tente novamente.')
+                    } finally {
+                        setLoading(false)
+                    }
+                }
+                reader.readAsDataURL(file)
+            } catch (error) {
+                console.error('File read error:', error)
+                setLoading(false)
             }
-            reader.readAsDataURL(file)
         }
     }
 
@@ -200,17 +225,31 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                         </div>
 
                         {imageSource === "upload" && (
-                            <div className="flex items-center gap-2 border rounded-md p-2 bg-muted/20">
-                                <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleFileChange}
-                                    className="cursor-pointer"
-                                />
-                                {formData.image_url && (
-                                    <div className="w-10 h-10 rounded overflow-hidden border">
-                                        <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
-                                    </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 border rounded-md p-2 bg-muted/20">
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className="cursor-pointer"
+                                        disabled={loading}
+                                    />
+                                    {formData.image_url && (
+                                        <div className="w-10 h-10 rounded overflow-hidden border">
+                                            <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+                                {loading && (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        Fazendo upload para Cloudinary...
+                                    </p>
+                                )}
+                                {formData.image_url && !loading && (
+                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                        ✓ Imagem enviada com sucesso!
+                                    </p>
                                 )}
                             </div>
                         )}

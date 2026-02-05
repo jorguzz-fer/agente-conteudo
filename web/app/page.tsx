@@ -4,15 +4,18 @@ import { useState } from "react"
 import { GenerationForm } from "@/components/GenerationForm"
 import { ResultView } from "@/components/ResultView"
 import { HistoryList } from "@/components/HistoryList"
+import SpreadsheetImport from "@/components/SpreadsheetImport"
+import { Button } from "@/components/ui/button"
+import { FileText, FileSpreadsheet } from "lucide-react"
+
+type Mode = 'manual' | 'spreadsheet'
 
 export default function Home() {
   const [result, setResult] = useState<any>(null)
+  const [mode, setMode] = useState<Mode>('manual')
 
   const handleReset = () => {
     setResult(null)
-    // Optional: Refresh history list by triggering a re-fetch, but simpler to just reload or let user see updated list on next visit? 
-    // Since HistoryList fetches on mount, removing/adding doesn't auto-refresh it unless we signal it. 
-    // For now, let's keep it simple. The user asked for "Atualizar a página" (Refresh page) behavior.
     window.location.reload()
   }
 
@@ -28,10 +31,37 @@ export default function Home() {
           </p>
         </div>
 
+        {!result && (
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant={mode === 'manual' ? 'default' : 'outline'}
+              onClick={() => setMode('manual')}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Criar Conteúdo Avulso
+            </Button>
+            <Button
+              variant={mode === 'spreadsheet' ? 'default' : 'outline'}
+              onClick={() => setMode('spreadsheet')}
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Pegar de uma Planilha
+            </Button>
+          </div>
+        )}
+
         {!result ? (
           <>
-            <GenerationForm onSuccess={setResult} />
-            <HistoryList />
+            {mode === 'manual' ? (
+              <>
+                <GenerationForm onSuccess={setResult} />
+                <HistoryList />
+              </>
+            ) : (
+              <SpreadsheetImport />
+            )}
           </>
         ) : (
           <ResultView data={result} onReset={handleReset} />
