@@ -19,14 +19,24 @@ export function ResultView({ data, onReset }: ResultViewProps) {
 
     const isAiImageMode = !data.user_image && !selectedImage
 
-    // Suggest 3 mock images if AI mode was chosen and no image selected yet
-    const mockAiImages = [
-        "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=400&q=80",
-        "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=400&q=80",
-        "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=400&q=80"
-    ]
+    // Generate dynamic AI image suggestions based on theme
+    const generateImageSuggestions = () => {
+        const queries = ["business", "leadership", "teamwork", "success", "growth", "innovation"]
+        const randomQuery = queries[Math.floor(Math.random() * queries.length)]
+        const randomSeed = Math.floor(Math.random() * 1000)
 
-    const finalData = { ...data, image_url: selectedImage }
+        return [
+            `https://source.unsplash.com/400x711/?${randomQuery},professional&sig=${randomSeed}`,
+            `https://source.unsplash.com/400x711/?${randomQuery},office&sig=${randomSeed + 1}`,
+            `https://source.unsplash.com/400x711/?${randomQuery},corporate&sig=${randomSeed + 2}`
+        ]
+    }
+
+    const mockAiImages = generateImageSuggestions()
+
+    // Use first AI suggestion as default if in AI mode and no image selected
+    const effectiveImageUrl = selectedImage || (isAiImageMode ? mockAiImages[0] : null)
+    const finalData = { ...data, image_url: effectiveImageUrl }
 
     const handlePublish = async () => {
         setPublishing(true)

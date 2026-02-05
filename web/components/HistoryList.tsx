@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Calendar, Loader2 } from "lucide-react"
+import { Calendar, Loader2 } from "lucide-react"
 
 interface HistoryItem {
     id: string
@@ -46,33 +46,21 @@ export function HistoryList() {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-2">
                     {history.map((item) => (
-                        <div key={item.id} className="p-4 bg-background border rounded-lg flex justify-between items-start shadow-sm">
-                            <div className="space-y-1">
-                                <h4 className="font-semibold text-foreground/90">{item.input_data.theme || "Sem tema"}</h4>
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {item.output_data?.lede || "..."}
-                                </p>
-                                <div className="flex gap-2 text-xs text-muted-foreground pt-1">
-                                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                                    <span>•</span>
-                                    <span>{item.input_data.target_phone || "Destino desconhecido"}</span>
-                                </div>
+                        <div key={item.id} className="px-4 py-2 bg-background border rounded-md flex items-center justify-between text-sm hover:bg-muted/50 transition-colors">
+                            <span className="font-medium text-foreground/90 flex-1 truncate">
+                                {item.input_data.theme || "Sem tema"}
+                            </span>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground ml-4">
+                                <span>{new Date(item.created_at).toLocaleDateString('pt-BR')}</span>
+                                <span>•</span>
+                                <span className="truncate max-w-[150px]">{item.input_data.target_phone || "N/A"}</span>
                             </div>
-                            <ButtonVariantIcon />
                         </div>
                     ))}
                 </div>
             </CardContent>
         </Card>
-    )
-}
-
-function ButtonVariantIcon() {
-    return (
-        <div className="p-2 bg-muted rounded-full text-muted-foreground">
-            <FileText className="w-4 h-4" />
-        </div>
     )
 }
