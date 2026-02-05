@@ -101,7 +101,16 @@ export function GenerationForm({ onSuccess }: GenerationFormProps) {
                 throw new Error(data.error || "Erro desconhecido na geração")
             }
 
-            onSuccess({ ...data, user_image: imageSource === "upload" ? formData.image_url : null })
+            onSuccess({
+                ...data,
+                user_image: imageSource === "upload" ? formData.image_url : null,
+                target_phone: formData.target_phone,
+                // Include original form data for n8n
+                input_theme: formData.theme,
+                input_audience: formData.audience,
+                input_tone: formData.tone,
+                input_context: formData.context
+            })
         } catch (error: any) {
             console.error("Erro ao gerar:", error)
             alert(`Erro: ${error.message}`)
