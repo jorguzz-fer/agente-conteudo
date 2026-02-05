@@ -3,10 +3,19 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Only create client if both URL and key are provided
+export const supabase = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null
+
 
 export async function uploadImageToSupabase(base64Image: string): Promise<string> {
     try {
+        // Check if Supabase is configured
+        if (!supabase) {
+            throw new Error('Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.')
+        }
+
         // Extract base64 data
         const matches = base64Image.match(/^data:image\/(\w+);base64,(.+)$/)
         if (!matches) {
@@ -22,6 +31,7 @@ export async function uploadImageToSupabase(base64Image: string): Promise<string
 
         // Convert base64 to buffer
         const buffer = Buffer.from(imageData, 'base64')
+
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
